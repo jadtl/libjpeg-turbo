@@ -9,7 +9,7 @@ if(POLICY CMP0022)
 endif()
 
 project(libjpeg-turbo C)
-set(VERSION 1.5.4)
+set(VERSION 1.5.1)
 string(REPLACE "." ";" VERSION_TRIPLET ${VERSION})
 list(GET VERSION_TRIPLET 0 VERSION_MAJOR)
 list(GET VERSION_TRIPLET 1 VERSION_MINOR)
@@ -367,20 +367,8 @@ if(WITH_12BIT)
   set(MD5_PPM_GRAY_ISLOW 7213c10af507ad467da5578ca5ee1fca)
   set(MD5_PPM_GRAY_ISLOW_RGB e96ee81c30a6ed422d466338bd3de65d)
   set(MD5_JPEG_420S_IFAST_OPT 7af8e60be4d9c227ec63ac9b6630855e)
-  if(64BIT)
-    # Windows/x64 uses SSE for floating point
-    set(MD5_JPEG_3x2_FLOAT_PROG a8c17daf77b457725ec929e215b603f8)
-    set(MD5_PPM_3x2_FLOAT 42876ab9e5c2f76a87d08db5fbd57956)
-  else()
-    # Windows/x86 uses the 387 FPU for floating point
-    if(MSVC)
-      set(MD5_JPEG_3x2_FLOAT_PROG e27840755870fa849872e58aa0cd1400)
-      set(MD5_PPM_3x2_FLOAT 6c2880b83bb1aa41dfe330e7a9768690)
-    else()
-      set(MD5_JPEG_3x2_FLOAT_PROG bc6dbbefac2872f6b9d6c4a0ae60c3c0)
-      set(MD5_PPM_3x2_FLOAT f58119ee294198ac9b4a9f5645a34266)
-    endif()
-  endif()
+  set(MD5_JPEG_3x2_FLOAT_PROG a8c17daf77b457725ec929e215b603f8)
+  set(MD5_PPM_3x2_FLOAT 42876ab9e5c2f76a87d08db5fbd57956)
   set(MD5_PPM_420M_ISLOW_2_1 4ca6be2a6f326ff9eaab63e70a8259c0)
   set(MD5_PPM_420M_ISLOW_15_8 12aa9f9534c1b3d7ba047322226365eb)
   set(MD5_PPM_420M_ISLOW_13_8 f7e22817c7b25e1393e4ec101e9d4e96)
@@ -422,18 +410,8 @@ else()
     set(MD5_JPEG_3x2_FLOAT_PROG 343e3f8caf8af5986ebaf0bdc13b5c71)
     set(MD5_PPM_3x2_FLOAT 1a75f36e5904d6fc3a85a43da9ad89bb)
   else()
-    if(64BIT)
-      set(MD5_JPEG_3x2_FLOAT_PROG 9bca803d2042bd1eb03819e2bf92b3e5)
-      set(MD5_PPM_3x2_FLOAT f6bfab038438ed8f5522fbd33595dcdc)
-    else()
-      if(MSVC)
-        set(MD5_JPEG_3x2_FLOAT_PROG 7999ce9cd0ee9b6c7043b7351ab7639d)
-        set(MD5_PPM_3x2_FLOAT 28cdc448a6b75e97892f0e0f8d4b21f3)
-      else()
-        set(MD5_JPEG_3x2_FLOAT_PROG 1657664a410e0822c924b54f6f65e6e9)
-        set(MD5_PPM_3x2_FLOAT cb0a1f027f3d2917c902b5640214e025)
-      endif()
-    endif()
+    set(MD5_JPEG_3x2_FLOAT_PROG 9bca803d2042bd1eb03819e2bf92b3e5)
+    set(MD5_PPM_3x2_FLOAT f6bfab038438ed8f5522fbd33595dcdc)
   endif()
   set(MD5_JPEG_420_ISLOW_ARI e986fb0a637a8d833d96e8a6d6d84ea1)
   set(MD5_JPEG_444_ISLOW_PROGARI 0a8f1c8f66e113c3cf635df0a475a617)
@@ -455,7 +433,7 @@ else()
   set(MD5_BMP_420_ISLOW_565 bf9d13e16c4923b92e1faa604d7922cb)
   set(MD5_BMP_420_ISLOW_565D 6bde71526acc44bcff76f696df8638d2)
   set(MD5_BMP_420M_ISLOW_565 8dc0185245353cfa32ad97027342216f)
-  set(MD5_BMP_420M_ISLOW_565D ce034037d212bc403330df6f915c161b)
+  set(MD5_BMP_420M_ISLOW_565D d1be3a3339166255e76fa50a0d70d73e)
   set(MD5_PPM_420_ISLOW_SKIP15_31 c4c65c1e43d7275cd50328a61e6534f0)
   set(MD5_PPM_420_ISLOW_ARI_SKIP16_139 087c6b123db16ac00cb88c5b590bb74a)
   set(MD5_PPM_420_ISLOW_PROG_CROP62x62_71_71 26eb36ccc7d1f0cb80cdabb0ac8b5d99)
@@ -866,7 +844,7 @@ foreach(libtype ${TEST_LIBTYPES})
 
 endforeach()
 
-add_custom_target(testclean COMMAND ${CMAKE_COMMAND} -P
+add_custom_target(testclean COMMAND ${MD5CMP} -P
   ${CMAKE_SOURCE_DIR}/cmakescripts/testclean.cmake)
 
 
@@ -925,12 +903,7 @@ if(WITH_TURBOJPEG)
   if(ENABLE_STATIC)
     install(TARGETS turbojpeg-static ARCHIVE DESTINATION lib)
     if(NOT ENABLE_SHARED)
-      if(MSVC_IDE)
-        set(DIR "${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}")
-      else()
-        set(DIR ${CMAKE_CURRENT_BINARY_DIR})
-      endif()
-      install(PROGRAMS ${DIR}/tjbench-static.exe
+      install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/tjbench-static.exe
         DESTINATION bin RENAME tjbench.exe)
     endif()
   endif()
@@ -940,16 +913,11 @@ endif()
 if(ENABLE_STATIC)
   install(TARGETS jpeg-static ARCHIVE DESTINATION lib)
   if(NOT ENABLE_SHARED)
-    if(MSVC_IDE)
-      set(DIR "${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}")
-    else()
-      set(DIR ${CMAKE_CURRENT_BINARY_DIR})
-    endif()
-    install(PROGRAMS ${DIR}/cjpeg-static.exe
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cjpeg-static.exe
       DESTINATION bin RENAME cjpeg.exe)
-    install(PROGRAMS ${DIR}/djpeg-static.exe
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/djpeg-static.exe
       DESTINATION bin RENAME djpeg.exe)
-    install(PROGRAMS ${DIR}/jpegtran-static.exe
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/jpegtran-static.exe
       DESTINATION bin RENAME jpegtran.exe)
   endif()
 endif()
@@ -965,8 +933,3 @@ install(FILES ${CMAKE_SOURCE_DIR}/README.ijg ${CMAKE_SOURCE_DIR}/README.md
 install(FILES ${CMAKE_BINARY_DIR}/jconfig.h ${CMAKE_SOURCE_DIR}/jerror.h
   ${CMAKE_SOURCE_DIR}/jmorecfg.h ${CMAKE_SOURCE_DIR}/jpeglib.h
   DESTINATION include)
-
-configure_file("${CMAKE_SOURCE_DIR}/cmakescripts/cmake_uninstall.cmake.in"
-  "cmake_uninstall.cmake" IMMEDIATE @ONLY)
-
-add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P cmake_uninstall.cmake)

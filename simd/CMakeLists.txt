@@ -1,7 +1,6 @@
 if(NOT DEFINED NASM)
-  find_program(NASM NAMES nasm yasm DOC "Path to NASM/YASM executable")
+  set(NASM nasm CACHE FILEPATH "Path to NASM/YASM executable")
 endif()
-message(STATUS "NASM = ${NASM}")
 
 if(SIMD_X86_64)
   set(NAFLAGS -fwin64 -DWIN64 -D__x86_64__)

@@ -4,27 +4,21 @@
  * This file was part of the Independent JPEG Group's software:
  * Developed 1997-2015 by Guido Vollbeding.
  * libjpeg-turbo Modifications:
- * Copyright (C) 2015-2018, D. R. Commander.
+ * Copyright (C) 2015-2016, D. R. Commander.
  * For conditions of distribution and use, see the accompanying README.ijg
  * file.
  *
- * This file contains portable arithmetic entropy encoding routines for JPEG
- * (implementing Recommendation ITU-T T.81 | ISO/IEC 10918-1).
+ * This file contains portable arithmetic entropy decoding routines for JPEG
+ * (implementing the ISO/IEC IS 10918-1 and CCITT Recommendation ITU-T T.81).
  *
  * Both sequential and progressive modes are supported in this single module.
  *
  * Suspension is not currently supported in this module.
- *
- * NOTE: All referenced figures are from
- * Recommendation ITU-T T.81 (1992) | ISO/IEC 10918-1:1994.
  */
 
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
-
-
-#define NEG_1 ((unsigned int)-1)
 
 
 /* Expanded entropy decoder object for arithmetic decoding. */
@@ -309,7 +303,7 @@ decode_mcu_DC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
       while (m >>= 1)
         if (arith_decode(cinfo, st)) v |= m;
       v += 1; if (sign) v = -v;
-      entropy->last_dc_val[ci] = (entropy->last_dc_val[ci] + v) & 0xffff;
+      entropy->last_dc_val[ci] += v;
     }
 
     /* Scale and output the DC coefficient (assumes jpeg_natural_order[0]=0) */
@@ -456,7 +450,7 @@ decode_mcu_AC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   tbl = cinfo->cur_comp_info[0]->ac_tbl_no;
 
   p1 = 1 << cinfo->Al;          /* 1 in the bit position being coded */
-  m1 = (NEG_1) << cinfo->Al;    /* -1 in the bit position being coded */
+  m1 = (-1) << cinfo->Al;       /* -1 in the bit position being coded */
 
   /* Establish EOBx (previous stage end-of-block) index */
   for (kex = cinfo->Se; kex > 0; kex--)
@@ -567,7 +561,7 @@ decode_mcu (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
       while (m >>= 1)
         if (arith_decode(cinfo, st)) v |= m;
       v += 1; if (sign) v = -v;
-      entropy->last_dc_val[ci] = (entropy->last_dc_val[ci] + v) & 0xffff;
+      entropy->last_dc_val[ci] += v;
     }
 
     if (block)
@@ -690,8 +684,8 @@ start_pass (j_decompress_ptr cinfo)
     /* Check that the scan parameters Ss, Se, Ah/Al are OK for sequential JPEG.
      * This ought to be an error condition, but we make it a warning.
      */
-    if (cinfo->Ss != 0 || cinfo->Se != DCTSIZE2-1 ||
-        cinfo->Ah != 0 || cinfo->Al != 0)
+    if (cinfo->Ss != 0 || cinfo->Ah != 0 || cinfo->Al != 0 ||
+        (cinfo->Se < DCTSIZE2 && cinfo->Se != DCTSIZE2 - 1))
       WARNMS(cinfo, JWRN_NOT_SEQUENTIAL);
     /* Select MCU decoding routine */
     entropy->pub.decode_mcu = decode_mcu;

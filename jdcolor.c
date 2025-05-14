@@ -600,7 +600,7 @@ ycck_cmyk_convert (j_decompress_ptr cinfo,
 /* Declarations for ordered dithering
  *
  * We use a 4x4 ordered dither array packed into 32 bits.  This array is
- * sufficient for dithering RGB888 to RGB565.
+ * sufficent for dithering RGB888 to RGB565.
  */
 
 #define DITHER_MASK       0x3
@@ -616,7 +616,7 @@ static const JLONG dither_matrix[4] = {
 static INLINE boolean is_big_endian(void)
 {
   int test_value = 1;
-  if (*(char *)&test_value != 1)
+  if(*(char *)&test_value != 1)
     return TRUE;
   return FALSE;
 }

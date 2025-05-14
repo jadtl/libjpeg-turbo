@@ -2,7 +2,7 @@
  * jsimd_powerpc.c
  *
  * Copyright 2009 Pierre Ossman <ossman@cendio.se> for Cendio AB
- * Copyright (C) 2009-2011, 2014-2016, 2018, D. R. Commander.
+ * Copyright (C) 2009-2011, 2014-2016, D. R. Commander.
  * Copyright (C) 2015, Matthieu Darbois.
  *
  * Based on the x86 SIMD extension for IJG JPEG library,
@@ -13,11 +13,6 @@
  * of the library and the SIMD implementations when running on a
  * PowerPC architecture.
  */
-
-#ifdef __amigaos4__
-/* This must be defined first as it re-defines GLOBAL otherwise */
-#include <proto/exec.h>
-#endif
 
 #define JPEG_INTERNALS
 #include "../jinclude.h"
@@ -31,15 +26,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#if defined(__OpenBSD__)
-#include <sys/param.h>
-#include <sys/sysctl.h>
-#include <machine/cpu.h>
-#endif
-
 static unsigned int simd_support = ~0;
 
-#if !defined(__ALTIVEC__) && (defined(__linux__) || defined(ANDROID) || defined(__ANDROID__))
+#if defined(__linux__) || defined(ANDROID) || defined(__ANDROID__)
 
 #define SOMEWHAT_SANE_PROC_CPUINFO_SIZE_LIMIT (1024 * 1024)
 
@@ -109,17 +98,9 @@ parse_proc_cpuinfo (int bufsize)
 LOCAL(void)
 init_simd (void)
 {
-#ifndef NO_GETENV
   char *env = NULL;
-#endif
 #if !defined(__ALTIVEC__) && (defined(__linux__) || defined(ANDROID) || defined(__ANDROID__))
   int bufsize = 1024; /* an initial guess for the line buffer size limit */
-#elif defined(__amigaos4__)
-  uint32 altivec = 0;
-#elif defined(__OpenBSD__)
-  int mib[2] = { CTL_MACHDEP, CPU_ALTIVEC };
-  int altivec;
-  size_t len = sizeof(altivec);
 #endif
 
   if (simd_support != ~0U)
@@ -135,16 +116,8 @@ init_simd (void)
     if (bufsize > SOMEWHAT_SANE_PROC_CPUINFO_SIZE_LIMIT)
       break;
   }
-#elif defined(__amigaos4__)
-  IExec->GetCPUInfoTags(GCIT_VectorUnit, &altivec, TAG_DONE);
-  if(altivec == VECTORTYPE_ALTIVEC)
-    simd_support |= JSIMD_ALTIVEC;
-#elif defined(__OpenBSD__)
-  if (sysctl(mib, 2, &altivec, &len, NULL, 0) == 0 && altivec != 0)
-    simd_support |= JSIMD_ALTIVEC;
 #endif
 
-#ifndef NO_GETENV
   /* Force different settings through environment variables */
   env = getenv("JSIMD_FORCEALTIVEC");
   if ((env != NULL) && (strcmp(env, "1") == 0))
@@ -152,7 +125,6 @@ init_simd (void)
   env = getenv("JSIMD_FORCENONE");
   if ((env != NULL) && (strcmp(env, "1") == 0))
     simd_support = 0;
-#endif
 }
 
 GLOBAL(int)

@@ -5,7 +5,7 @@
  * Copyright (C) 1991-1997, Thomas G. Lane.
  * Modified 2009 by Bill Allombert, Guido Vollbeding.
  * libjpeg-turbo Modifications:
- * Copyright (C) 2015, 2016, 2020, D. R. Commander.
+ * Copyright (C) 2015, 2016, D. R. Commander.
  * For conditions of distribution and use, see the accompanying README.ijg
  * file.
  *
@@ -22,7 +22,6 @@
  * the file is indeed PPM format).
  */
 
-#define JPEG_INTERNALS
 #include "cdjpeg.h"             /* Common decls for cjpeg/djpeg applications */
 
 #ifdef PPM_SUPPORTED
@@ -70,7 +69,7 @@ typedef struct {
   JSAMPROW pixrow;              /* compressor input buffer */
   size_t buffer_width;          /* width of I/O buffer */
   JSAMPLE *rescale;             /* => maxval-remapping array, or NULL */
-  unsigned int maxval;
+  int maxval;
 } ppm_source_struct;
 
 typedef ppm_source_struct *ppm_source_ptr;
@@ -120,7 +119,7 @@ read_pbm_integer (j_compress_ptr cinfo, FILE *infile, unsigned int maxval)
   }
 
   if (val > maxval)
-    ERREXIT(cinfo, JERR_PPM_OUTOFRANGE);
+    ERREXIT(cinfo, JERR_PPM_TOOLARGE);
 
   return val;
 }
@@ -252,11 +251,11 @@ get_word_gray_row (j_compress_ptr cinfo, cjpeg_source_ptr sinfo)
   ptr = source->pub.buffer[0];
   bufferptr = source->iobuffer;
   for (col = cinfo->image_width; col > 0; col--) {
-    register unsigned int temp;
+    register int temp;
     temp  = UCH(*bufferptr++) << 8;
     temp |= UCH(*bufferptr++);
     if (temp > maxval)
-      ERREXIT(cinfo, JERR_PPM_OUTOFRANGE);
+      ERREXIT(cinfo, JERR_PPM_TOOLARGE);
     *ptr++ = rescale[temp];
   }
   return 1;
@@ -279,21 +278,21 @@ get_word_rgb_row (j_compress_ptr cinfo, cjpeg_source_ptr sinfo)
   ptr = source->pub.buffer[0];
   bufferptr = source->iobuffer;
   for (col = cinfo->image_width; col > 0; col--) {
-    register unsigned int temp;
+    register int temp;
     temp  = UCH(*bufferptr++) << 8;
     temp |= UCH(*bufferptr++);
     if (temp > maxval)
-      ERREXIT(cinfo, JERR_PPM_OUTOFRANGE);
+      ERREXIT(cinfo, JERR_PPM_TOOLARGE);
     *ptr++ = rescale[temp];
     temp  = UCH(*bufferptr++) << 8;
     temp |= UCH(*bufferptr++);
     if (temp > maxval)
-      ERREXIT(cinfo, JERR_PPM_OUTOFRANGE);
+      ERREXIT(cinfo, JERR_PPM_TOOLARGE);
     *ptr++ = rescale[temp];
     temp  = UCH(*bufferptr++) << 8;
     temp |= UCH(*bufferptr++);
     if (temp > maxval)
-      ERREXIT(cinfo, JERR_PPM_OUTOFRANGE);
+      ERREXIT(cinfo, JERR_PPM_TOOLARGE);
     *ptr++ = rescale[temp];
   }
   return 1;
@@ -426,7 +425,7 @@ start_input_ppm (j_compress_ptr cinfo, cjpeg_source_ptr sinfo)
     /* On 16-bit-int machines we have to be careful of maxval = 65535 */
     source->rescale = (JSAMPLE *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-                                  (size_t) (((long) MAX(maxval, 255) + 1L) *
+                                  (size_t) (((long) maxval + 1L) *
                                             sizeof(JSAMPLE)));
     half_maxval = maxval / 2;
     for (val = 0; val <= (long) maxval; val++) {

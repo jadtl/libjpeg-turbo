@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2011-2015, 2020 D. R. Commander.  All Rights Reserved.
+ * Copyright (C)2011-2015 D. R. Commander.  All Rights Reserved.
  * Copyright (C)2015 Viktor Szathmáry.  All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -285,8 +285,8 @@ public class TJCompressor implements Closeable {
    * <p>
    * NOTE: This method has no effect when compressing a JPEG image from a YUV
    * planar source.  In that case, the level of chrominance subsampling in
-   * the JPEG image is determined by the source.  Furthermore, this method has
-   * no effect when encoding to a pre-allocated {@link YUVImage} instance.  In
+   * the JPEG image is determined by the source.  Further, this method has no
+   * effect when encoding to a pre-allocated {@link YUVImage} instance.  In
    * that case, the level of chrominance subsampling is determined by the
    * destination.
    *
@@ -375,15 +375,8 @@ public class TJCompressor implements Closeable {
    * #getCompressedSize} to obtain the size of the JPEG image.
    */
   public byte[] compress(int flags) throws TJException {
-    byte[] buf;
-    if (srcYUVImage != null) {
-      buf = new byte[TJ.bufSize(srcYUVImage.getWidth(),
-                                srcYUVImage.getHeight(),
-                                srcYUVImage.getSubsamp())];
-    } else {
-      checkSourceImage();
-      buf = new byte[TJ.bufSize(srcWidth, srcHeight, subsamp)];
-    }
+    checkSourceImage();
+    byte[] buf = new byte[TJ.bufSize(srcWidth, srcHeight, subsamp)];
     compress(buf, flags);
     return buf;
   }

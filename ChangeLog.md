@@ -1,248 +1,3 @@
-1.5.4
-=====
-
-### Significant changes relative to 1.5.3:
-
-1. Fixed two signed integer overflows in the arithmetic decoder, detected by
-the Clang undefined behavior sanitizer, that could be triggered by attempting
-to decompress a specially-crafted malformed JPEG image.  These issues did not
-pose a security threat, but removing the warnings makes it easier to detect
-actual security issues, should they arise in the future.
-
-2. Fixed a bug in the merged 4:2:0 upsampling/dithered RGB565 color conversion
-algorithm that caused incorrect dithering in the output image.  This algorithm
-now produces bitwise-identical results to the unmerged algorithms.
-
-3. Fixed a build error when building with older MinGW releases (regression
-caused by 1.5.1[7].)
-
-4. The TurboJPEG API can now decompress CMYK JPEG images that have subsampled M
-and Y components (not to be confused with YCCK JPEG images, in which the C/M/Y
-components have been transformed into luma and chroma.)   Previously, an error
-was generated ("Could not determine subsampling type for JPEG image") when such
-an image was passed to `tjDecompressHeader3()`, `tjTransform()`,
-`tjDecompressToYUVPlanes()`, `tjDecompressToYUV2()`, or the equivalent Java
-methods.
-
-5. Fixed an issue (CVE-2018-11813) whereby a specially-crafted malformed input
-file (specifically, a file with a valid Targa header but incomplete pixel data)
-would cause cjpeg to generate a JPEG file that was potentially thousands of
-times larger than the input file.  The Targa reader in cjpeg was not properly
-detecting that the end of the input file had been reached prematurely, so after
-all valid pixels had been read from the input, the reader injected dummy pixels
-with values of 255 into the JPEG compressor until the number of pixels
-specified in the Targa header had been compressed.  The Targa reader in cjpeg
-now behaves like the PPM reader and aborts compression if the end of the input
-file is reached prematurely.  Because this issue only affected cjpeg and not
-the underlying library, and because it did not involve any out-of-bounds reads
-or other exploitable behaviors, it was not believed to represent a security
-threat.
-
-6. Fixed an issue whereby certain combinations of calls to
-`jpeg_skip_scanlines()` and `jpeg_read_scanlines()` could trigger an infinite
-loop when decompressing progressive JPEG images that use vertical chroma
-subsampling (for instance, 4:2:0 or 4:4:0.)
-
-7. Fixed a segfault in `jpeg_skip_scanlines()` that occurred when decompressing
-a 4:2:2 or 4:2:0 JPEG image using the merged (non-fancy) upsampling algorithms
-(that is, when setting `cinfo.do_fancy_upsampling` to `FALSE`.)
-
-8. Fixed out-of-bounds read in cjpeg (CVE-2018-14498) that occurred when
-attempting to compress a specially-crafted malformed color-index
-(8-bit-per-sample) BMP file in which some of the samples (color indices)
-exceeded the bounds of the BMP file's color table.
-
-9. Fixed a signed integer overflow in the progressive Huffman decoder, detected
-by the Clang and GCC undefined behavior sanitizers, that could be triggered by
-attempting to decompress a specially-crafted malformed JPEG image.  This issue
-did not pose a security threat, but removing the warning made it easier to
-detect actual security issues, should they arise in the future.
-
-10. Fixed out-of-bounds read in cjpeg that occurred when attempting to compress
-a specially-crafted malformed color-index (8-bit-per-sample) Targa file in
-which some of the samples (color indices) exceeded the bounds of the Targa
-file's color table.
-
-11. Fixed a buffer overrun (CVE-2018-19664) that occurred when attempting to
-decompress a specially-crafted malformed JPEG image to a 256-color BMP using
-djpeg.
-
-12. Fixed a floating point exception that occurred when attempting to
-decompress a specially-crafted malformed JPEG image with a specified image
-width or height of 0 using the C version of TJBench.
-
-13. The TurboJPEG API will now decompress 4:4:4 JPEG images with 2x1, 1x2, 3x1,
-or 1x3 luminance and chrominance sampling factors.  This is a non-standard way
-of specifying 1x subsampling (normally 4:4:4 JPEGs have 1x1 luminance and
-chrominance sampling factors), but the JPEG format and the libjpeg API both
-allow it.
-
-14. Fixed an issue whereby a static build of libjpeg-turbo (a build in which
-`ENABLE_SHARED` is `0`) could not be installed using the Visual Studio IDE.
-
-15. Fixed an issue whereby `tjDecodeYUV()` and `tjDecodeYUVPlanes()` would
-throw an error ("Invalid progressive parameters") or a warning ("Inconsistent
-progression sequence") if passed a TurboJPEG instance that was previously used
-to decompress a progressive JPEG image.
-
-16. Fixed out-of-bounds write in `tjDecompressToYUV2()` and
-`tjDecompressToYUVPlanes()` (sometimes manifesting as a double free) that
-occurred when attempting to decompress grayscale JPEG images that were
-compressed with a sampling factor other than 1 (for instance, with
-`cjpeg -grayscale -sample 2x2`).
-
-17. Fixed an issue (CVE-2020-17541), detected by ASan, whereby attempting to
-losslessly transform a specially-crafted malformed JPEG image containing an
-extremely-high-frequency coefficient block (junk image data that could never be
-generated by a legitimate JPEG compressor) could cause the Huffman encoder's
-local buffer to be overrun. (Refer to 1.4.0[9] and 1.4beta1[15].)  Given that
-the buffer overrun was fully contained within the stack and did not cause a
-segfault or other user-visible errant behavior, and given that the lossless
-transformer (unlike the decompressor) is not generally exposed to arbitrary
-data exploits, this issue did not likely pose a security risk.
-
-18. Fixed an oversight in the `TJCompressor.compress(int)` method in the
-TurboJPEG Java API that caused an error ("java.lang.IllegalStateException: No
-source image is associated with this instance") when attempting to use that
-method to compress a YUV image.
-
-19. Fixed an issue (CVE-2020-13790) in the PPM reader that caused a buffer
-overrun in cjpeg or TJBench if one of the values in a binary PPM/PGM input file
-exceeded the maximum value defined in the file's header and that maximum value
-was less than 255.  libjpeg-turbo 1.5.0 already included a similar fix for
-binary PPM/PGM files with maximum values greater than 255.
-
-20. Fixed or worked around multiple issues with `jpeg_skip_scanlines()`:
-
-     - Fixed segfaults or "Corrupt JPEG data: premature end of data segment"
-errors in `jpeg_skip_scanlines()` that occurred when decompressing 4:2:2 or
-4:2:0 JPEG images using merged (non-fancy) upsampling/color conversion (that
-is, when setting `cinfo.do_fancy_upsampling` to `FALSE`.)  2.0.0[6] was a
-similar fix, but it did not cover all cases.
-     - `jpeg_skip_scanlines()` now throws an error if two-pass color
-quantization is enabled.  Two-pass color quantization never worked properly
-with `jpeg_skip_scanlines()`, and the issues could not readily be fixed.
-
-21. Fixed unexpected visual artifacts that occurred when using
-`jpeg_crop_scanline()` and interblock smoothing while decompressing only the DC
-scan of a progressive JPEG image.
-
-
-1.5.3
-=====
-
-### Significant changes relative to 1.5.2:
-
-1. Fixed a NullPointerException in the TurboJPEG Java wrapper that occurred
-when using the YUVImage constructor that creates an instance backed by separate
-image planes and allocates memory for the image planes.
-
-2. Fixed an issue whereby the Java version of TJUnitTest would fail when
-testing BufferedImage encoding/decoding on big endian systems.
-
-3. Fixed a segfault in djpeg that would occur if an output format other than
-PPM/PGM was selected along with the `-crop` option.  The `-crop` option now
-works with the GIF and Targa formats as well (unfortunately, it cannot be made
-to work with the BMP and RLE formats due to the fact that those output engines
-write scanlines in bottom-up order.)  djpeg will now exit gracefully if an
-output format other than PPM/PGM, GIF, or Targa is selected along with the
-`-crop` option.
-
-4. Fixed an issue (CVE-2017-15232) whereby `jpeg_skip_scanlines()` would
-segfault if color quantization was enabled.
-
-5. TJBench (both C and Java versions) will now display usage information if any
-command-line argument is unrecognized.  This prevents the program from silently
-ignoring typos.
-
-6. Fixed an access violation in tjbench.exe (Windows) that occurred when the
-program was used to decompress an existing JPEG image.
-
-7. Fixed an ArrayIndexOutOfBoundsException in the TJExample Java program that
-occurred when attempting to decompress a JPEG image that had been compressed
-with 4:1:1 chrominance subsampling.
-
-8. Fixed an issue whereby, when using `jpeg_skip_scanlines()` to skip to the
-end of a single-scan (non-progressive) image, subsequent calls to
-`jpeg_consume_input()` would return `JPEG_SUSPENDED` rather than
-`JPEG_REACHED_EOI`.
-
-9. `jpeg_crop_scanline()` now works correctly when decompressing grayscale JPEG
-images that were compressed with a sampling factor other than 1 (for instance,
-with `cjpeg -grayscale -sample 2x2`).
-
-
-1.5.2
-=====
-
-### Significant changes relative to 1.5.1:
-
-1. Fixed a regression introduced by 1.5.1[7] that prevented libjpeg-turbo from
-building with Android NDK platforms prior to android-21 (5.0).
-
-2. Fixed a regression introduced by 1.5.1[1] that prevented the MIPS DSPR2 SIMD
-code in libjpeg-turbo from building.
-
-3. Fixed a regression introduced by 1.5 beta1[11] that prevented the Java
-version of TJBench from outputting any reference images (the `-nowrite` switch
-was accidentally enabled by default.)
-
-4. libjpeg-turbo should now build and run with full AltiVec SIMD acceleration
-on PowerPC-based AmigaOS 4 and OpenBSD systems.
-
-5. Fixed build and runtime errors on Windows that occurred when building
-libjpeg-turbo with libjpeg v7 API/ABI emulation and the in-memory
-source/destination managers.  Due to an oversight, the `jpeg_skip_scanlines()`
-and `jpeg_crop_scanline()` functions were not being included in jpeg7.dll when
-libjpeg-turbo was built with `-DWITH_JPEG7=1` and `-DWITH_MEMSRCDST=1`.
-
-6. Fixed "Bogus virtual array access" error that occurred when using the
-lossless crop feature in jpegtran or the TurboJPEG API, if libjpeg-turbo was
-built with libjpeg v7 API/ABI emulation.  This was apparently a long-standing
-bug that has existed since the introduction of libjpeg v7/v8 API/ABI emulation
-in libjpeg-turbo v1.1.
-
-7. The lossless transform features in jpegtran and the TurboJPEG API will now
-always attempt to adjust the EXIF image width and height tags if the image size
-changed as a result of the transform.  This behavior has always existed when
-using libjpeg v8 API/ABI emulation.  It was supposed to be available with
-libjpeg v7 API/ABI emulation as well but did not work properly due to a bug.
-Furthermore, there was never any good reason not to enable it with libjpeg v6b
-API/ABI emulation, since the behavior is entirely internal.  Note that
-`-copy all` must be passed to jpegtran in order to transfer the EXIF tags from
-the source image to the destination image.
-
-8. Fixed several memory leaks in the TurboJPEG API library that could occur
-if the library was built with certain compilers and optimization levels
-(known to occur with GCC 4.x and clang with `-O1` and higher but not with
-GCC 5.x or 6.x) and one of the underlying libjpeg API functions threw an error
-after a TurboJPEG API function allocated a local buffer.
-
-9. The libjpeg-turbo memory manager will now honor the `max_memory_to_use`
-structure member in jpeg\_memory\_mgr, which can be set to the maximum amount
-of memory (in bytes) that libjpeg-turbo should use during decompression or
-multi-pass (including progressive) compression.  This limit can also be set
-using the `JPEGMEM` environment variable or using the `-maxmemory` switch in
-cjpeg/djpeg/jpegtran (refer to the respective man pages for more details.)
-This has been a documented feature of libjpeg since v5, but the
-`malloc()`/`free()` implementation of the memory manager (jmemnobs.c) never
-implemented the feature.  Restricting libjpeg-turbo's memory usage is useful
-for two reasons:  it allows testers to more easily work around the 2 GB limit
-in libFuzzer, and it allows developers of security-sensitive applications to
-more easily defend against one of the progressive JPEG exploits (LJT-01-004)
-identified in
-[this report](http://www.libjpeg-turbo.org/pmwiki/uploads/About/TwoIssueswiththeJPEGStandard.pdf).
-
-10. TJBench will now run each benchmark for 1 second prior to starting the
-timer, in order to improve the consistency of the results.  Furthermore, the
-`-warmup` option is now used to specify the amount of warmup time rather than
-the number of warmup iterations.
-
-11. Fixed an error (`short jump is out of range`) that occurred when assembling
-the 32-bit x86 SIMD extensions with NASM versions prior to 2.04.  This was a
-regression introduced by 1.5 beta1[12].
-
-
 1.5.1
 =====
 
@@ -304,8 +59,8 @@ specified.)
 2x2 luminance sampling factors and 2x1 or 1x2 chrominance sampling factors.
 This is a non-standard way of specifying 2x subsampling (normally 4:2:2 JPEGs
 have 2x1 luminance and 1x1 chrominance sampling factors, and 4:4:0 JPEGs have
-1x2 luminance and 1x1 chrominance sampling factors), but the JPEG format and
-the libjpeg API both allow it.
+1x2 luminance and 1x1 chrominance sampling factors), but the JPEG specification
+and the libjpeg API both allow it.
 
 7. Fixed an unsigned integer overflow in the libjpeg memory manager, detected
 by the Clang undefined behavior sanitizer, that could be triggered by
@@ -350,10 +105,10 @@ application was linked against.
 
 3. Fixed a couple of issues in the PPM reader that would cause buffer overruns
 in cjpeg if one of the values in a binary PPM/PGM input file exceeded the
-maximum value defined in the file's header and that maximum value was greater
-than 255.  libjpeg-turbo 1.4.2 already included a similar fix for ASCII PPM/PGM
-files.  Note that these issues were not security bugs, since they were confined
-to the cjpeg program and did not affect any of the libjpeg-turbo libraries.
+maximum value defined in the file's header.  libjpeg-turbo 1.4.2 already
+included a similar fix for ASCII PPM/PGM files.  Note that these issues were
+not security bugs, since they were confined to the cjpeg program and did not
+affect any of the libjpeg-turbo libraries.
 
 4. Fixed an issue whereby attempting to decompress a JPEG file with a corrupt
 header using the `tjDecompressToYUV2()` function would cause the function to
@@ -776,13 +531,13 @@ and IDCT algorithms (both are used during JPEG decompression.)  For unknown
 reasons (probably related to clang), this code cannot currently be compiled for
 iOS.
 
-15. Fixed an extremely rare bug (CVE-2014-9092) that could cause the Huffman
-encoder's local buffer to overrun when a very high-frequency MCU is compressed
-using quality 100 and no subsampling, and when the JPEG output buffer is being
-dynamically resized by the destination manager.  This issue was so rare that,
-even with a test program specifically designed to make the bug occur (by
-injecting random high-frequency YUV data into the compressor), it was
-reproducible only once in about every 25 million iterations.
+15. Fixed an extremely rare bug that could cause the Huffman encoder's local
+buffer to overrun when a very high-frequency MCU is compressed using quality
+100 and no subsampling, and when the JPEG output buffer is being dynamically
+resized by the destination manager.  This issue was so rare that, even with a
+test program specifically designed to make the bug occur (by injecting random
+high-frequency YUV data into the compressor), it was reproducible only once in
+about every 25 million iterations.
 
 16. Fixed an oversight in the TurboJPEG C wrapper:  if any of the JPEG
 compression functions was called repeatedly with the same
@@ -817,9 +572,8 @@ entropy coding (by passing arguments of `-progressive -arithmetic` to cjpeg or
 jpegtran, for instance) would result in an error, `Requested feature was
 omitted at compile time`.
 
-4. Fixed a couple of issues (CVE-2013-6629 and CVE-2013-6630) whereby malformed
-JPEG images would cause libjpeg-turbo to use uninitialized memory during
-decompression.
+4. Fixed a couple of issues whereby malformed JPEG images would cause
+libjpeg-turbo to use uninitialized memory during decompression.
 
 5. Fixed an error (`Buffer passed to JPEG library is too small`) that occurred
 when calling the TurboJPEG YUV encoding function with a very small (< 5x5)
@@ -958,9 +712,9 @@ correct behavior of the colorspace extensions when merged upsampling is used.
 upper 64 bits of xmm6 and xmm7 on Win64 platforms, which violated the Win64
 calling conventions.
 
-4. Fixed a regression (CVE-2012-2806) caused by 1.2.0[6] whereby decompressing
-corrupt JPEG images (specifically, images in which the component count was
-erroneously set to a large value) would cause libjpeg-turbo to segfault.
+4. Fixed a regression caused by 1.2.0[6] whereby decompressing corrupt JPEG
+images (specifically, images in which the component count was erroneously set
+to a large value) would cause libjpeg-turbo to segfault.
 
 5. Worked around a severe performance issue with "Bobcat" (AMD Embedded APU)
 processors.  The `MASKMOVDQU` instruction, which was used by the libjpeg-turbo

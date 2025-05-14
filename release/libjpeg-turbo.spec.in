@@ -13,22 +13,12 @@
 # Path under which headers should be installed
 %define _includedir %{__includedir}
 
-%if "%{?__isa_bits:1}" == "1"
-%define _bits %{__isa_bits}
-%else
-# RPM < 4.6
-%if "%{_lib}" == "lib64"
-%define _bits 64
-%else
-%define _bits 32
-%endif
-%endif
-
-%if "%{_bits}" == "64"
-%define _libdir %{_exec_prefix}/lib64
+# _libdir is set to %{_prefix}/%{_lib} by default
+%ifarch x86_64
+%define _lib lib64
 %else
 %if "%{_prefix}" == "/opt/libjpeg-turbo"
-%define _libdir %{_exec_prefix}/lib32
+%define _lib lib32
 %endif
 %endif
 
@@ -45,8 +35,8 @@ Group: System Environment/Libraries
 Release: @BUILD@
 License: BSD-style
 BuildRoot: %{_blddir}/%{name}-buildroot-%{version}-%{release}
-Requires: /sbin/ldconfig
-%if "%{_bits}" == "64"
+Prereq: /sbin/ldconfig
+%ifarch x86_64
 Provides: %{name} = %{version}-%{release}, @PACKAGE_NAME@ = %{version}-%{release}, libturbojpeg.so()(64bit)
 %else
 Provides: %{name} = %{version}-%{release}, @PACKAGE_NAME@ = %{version}-%{release}, libturbojpeg.so
@@ -83,8 +73,7 @@ broader range of users and developers.
 #-->	mandir=%{_mandir} JPEG_LIB_VERSION=@JPEG_LIB_VERSION@ \
 #-->	SO_MAJOR_VERSION=@SO_MAJOR_VERSION@ SO_MINOR_VERSION=@SO_MINOR_VERSION@ \
 #-->	--with-pic @RPM_CONFIG_ARGS@
-#-->export NUMCPUS=`grep -c '^processor' /proc/cpuinfo`
-#-->make -j$NUMCPUS --load-average=$NUMCPUS DESTDIR=$RPM_BUILD_ROOT
+#-->make DESTDIR=$RPM_BUILD_ROOT
 
 %install
 
@@ -97,7 +86,7 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 
 LJT_LIBDIR=%{__libdir}
 if [ ! "$LJT_LIBDIR" = "%{_libdir}" ]; then
-	echo ERROR: libjpeg-turbo must be configured with libdir=%{_libdir} when generating an in-tree RPM for this architecture.
+	echo ERROR: libjpeg-turbo must be configured with libdir=%{_prefix}/%{_lib} when generating an in-tree RPM for this architecture.
 	exit 1
 fi
 
@@ -135,7 +124,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libjpeg.so.@SO_MAJOR_VERSION@
 %{_libdir}/libjpeg.so
 %{_libdir}/libjpeg.a
-%dir %{_libdir}/pkgconfig
+%{_libdir}/pkgconfig
 %{_libdir}/pkgconfig/libjpeg.pc
 %{_libdir}/libturbojpeg.so.0.1.0
 %{_libdir}/libturbojpeg.so.0

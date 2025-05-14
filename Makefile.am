@@ -116,7 +116,6 @@ bin_PROGRAMS += poc
 poc_SOURCES = poc.c
 poc_LDADD = libturbojpeg.la
 
-
 cjpeg_SOURCES = cdjpeg.h cderror.h cdjpeg.c cjpeg.c rdgif.c rdppm.c rdswitch.c
 if WITH_12BIT
 else
@@ -177,7 +176,7 @@ dist_example_DATA = example.c
 EXTRA_DIST = win release $(DOCS) testimages CMakeLists.txt \
 	sharedlib/CMakeLists.txt cmakescripts libjpeg.map.in doc doxygen.config \
 	doxygen-extra.css jccolext.c jdcolext.c jdcol565.c jdmrgext.c jdmrg565.c \
-	jstdhuff.c jdcoefct.h jdmainct.h jdmaster.h jdmerge.h jdsample.h \
+	jstdhuff.c jdcoefct.h jdmainct.h jdmaster.h jdsample.h wrppm.h \
 	md5/CMakeLists.txt
 
 dist-hook:
@@ -206,8 +205,6 @@ MD5_PPM_3x2_FLOAT_SSE = 42876ab9e5c2f76a87d08db5fbd57956
 MD5_JPEG_3x2_FLOAT_PROG_32BIT = a8c17daf77b457725ec929e215b603f8
 MD5_PPM_3x2_FLOAT_32BIT = 42876ab9e5c2f76a87d08db5fbd57956
 MD5_PPM_3x2_FLOAT_64BIT = d6fbc71153b3d8ded484dbc17c7b9cf4
-MD5_JPEG_3x2_FLOAT_PROG_387 = bc6dbbefac2872f6b9d6c4a0ae60c3c0
-MD5_PPM_3x2_FLOAT_387 = bcc5723c61560463ac60f772e742d092
 MD5_JPEG_3x2_IFAST_PROG = 1396cc2b7185cfe943d408c9d305339e
 MD5_PPM_3x2_IFAST = 3975985ef6eeb0a2cdc58daa651ccc00
 MD5_PPM_420M_ISLOW_2_1 = 4ca6be2a6f326ff9eaab63e70a8259c0
@@ -255,13 +252,11 @@ MD5_PPM_3x2_FLOAT_SSE = 1a75f36e5904d6fc3a85a43da9ad89bb
 MD5_JPEG_3x2_FLOAT_PROG_32BIT = 9bca803d2042bd1eb03819e2bf92b3e5
 MD5_PPM_3x2_FLOAT_32BIT = f6bfab038438ed8f5522fbd33595dcdc
 MD5_PPM_3x2_FLOAT_64BIT = 0e917a34193ef976b679a6b069b1be26
-MD5_JPEG_3x2_FLOAT_PROG_387 = 1657664a410e0822c924b54f6f65e6e9
-MD5_PPM_3x2_FLOAT_387 = cb0a1f027f3d2917c902b5640214e025
 MD5_JPEG_3x2_IFAST_PROG = 1ee5d2c1a77f2da495f993c8c7cceca5
 MD5_PPM_3x2_IFAST = fd283664b3b49127984af0a7f118fccd
 MD5_JPEG_420_ISLOW_ARI = e986fb0a637a8d833d96e8a6d6d84ea1
 MD5_JPEG_444_ISLOW_PROGARI = 0a8f1c8f66e113c3cf635df0a475a617
-MD5_PPM_420M_IFAST_ARI = 57251da28a35b46eecb7177d82d10e0e
+MD5_PPM_420M_IFAST_ARI = 72b59a99bcf1de24c5b27d151bde2437
 MD5_JPEG_420_ISLOW = 9a68f56bc76e466aa7e52f415d0f4a5f
 MD5_PPM_420M_ISLOW_2_1 = 9f9de8c0612f8d06869b960b05abf9c9
 MD5_PPM_420M_ISLOW_15_8 = b6875bc070720b899566cc06459b63b7
@@ -279,7 +274,7 @@ MD5_BMP_420_ISLOW_256 = 4980185e3776e89bd931736e1cddeee6
 MD5_BMP_420_ISLOW_565 = bf9d13e16c4923b92e1faa604d7922cb
 MD5_BMP_420_ISLOW_565D = 6bde71526acc44bcff76f696df8638d2
 MD5_BMP_420M_ISLOW_565 = 8dc0185245353cfa32ad97027342216f
-MD5_BMP_420M_ISLOW_565D = ce034037d212bc403330df6f915c161b
+MD5_BMP_420M_ISLOW_565D =d1be3a3339166255e76fa50a0d70d73e
 MD5_PPM_420_ISLOW_SKIP15_31 = c4c65c1e43d7275cd50328a61e6534f0
 MD5_PPM_420_ISLOW_ARI_SKIP16_139 = 087c6b123db16ac00cb88c5b590bb74a
 MD5_PPM_420_ISLOW_PROG_CROP62x62_71_71 = 26eb36ccc7d1f0cb80cdabb0ac8b5d99
@@ -345,7 +340,7 @@ MD5_PPM_444_TILE = 7964e41e67cfb8d0a587c0aa4798f9c3
 # Test compressing from/decompressing to an arbitrary subregion of a larger
 # image buffer
 	cp $(srcdir)/testimages/testorig.ppm testout_tile.ppm
-	./tjbench testout_tile.ppm 95 -rgb -quiet -tile -benchtime 0.01 -warmup 0 >/dev/null 2>&1
+	./tjbench testout_tile.ppm 95 -rgb -quiet -tile -benchtime 0.01 >/dev/null 2>&1
 	for i in 8 16 32 64 128; do \
 		md5/md5cmp $(MD5_PPM_GRAY_TILE) testout_tile_GRAY_Q95_$$i\x$$i.ppm; \
 	done
@@ -364,7 +359,7 @@ MD5_PPM_444_TILE = 7964e41e67cfb8d0a587c0aa4798f9c3
 	done
 	rm -f testout_tile_GRAY_* testout_tile_420_* testout_tile_422_* testout_tile_444_*
 
-	./tjbench testout_tile.ppm 95 -rgb -fastupsample -quiet -tile -benchtime 0.01 -warmup 0 >/dev/null 2>&1
+	./tjbench testout_tile.ppm 95 -rgb -fastupsample -quiet -tile -benchtime 0.01 >/dev/null 2>&1
 	md5/md5cmp $(MD5_PPM_420M_8x8_TILE) testout_tile_420_Q95_8x8.ppm
 	for i in 16 32 64 128; do \
 		md5/md5cmp $(MD5_PPM_420M_TILE) testout_tile_420_Q95_$$i\x$$i.ppm; \
@@ -489,9 +484,6 @@ endif
 #                  x86-64 compilers)
 # FLOATTEST=64bit  validate against the exepected results from the C code
 #                  when running on a 64-bit FPU
-# FLOATTEST=387  validate against the expected results from the C code when
-#                the 387 FPU is being used for floating point math (which is
-#                generally the default with x86 compilers)
 
 # CC: RGB->YCC  SAMP: fullsize/int  FDCT: float  ENT: prog huff
 	./cjpeg -sample 3x2 -dct float -prog -outfile testout_3x2_float_prog.jpg $(srcdir)/testimages/testorig.ppm
@@ -499,8 +491,6 @@ endif
 		md5/md5cmp $(MD5_JPEG_3x2_FLOAT_PROG_SSE) testout_3x2_float_prog.jpg; \
 	elif [ "${FLOATTEST}" = "32bit" -o "${FLOATTEST}" = "64bit" ]; then \
 		md5/md5cmp $(MD5_JPEG_3x2_FLOAT_PROG_32BIT) testout_3x2_float_prog.jpg; \
-	elif [ "${FLOATTEST}" = "387" ]; then \
-		md5/md5cmp $(MD5_JPEG_3x2_FLOAT_PROG_387) testout_3x2_float_prog.jpg; \
 	fi
 # CC: YCC->RGB  SAMP: fullsize/int  IDCT: float  ENT: prog huff
 	./djpeg -dct float -outfile testout_3x2_float.ppm testout_3x2_float_prog.jpg
@@ -510,8 +500,6 @@ endif
 		md5/md5cmp $(MD5_PPM_3x2_FLOAT_32BIT) testout_3x2_float.ppm; \
 	elif [ "${FLOATTEST}" = "64bit" ]; then \
 		md5/md5cmp $(MD5_PPM_3x2_FLOAT_64BIT) testout_3x2_float.ppm; \
-	elif [ "${FLOATTEST}" = "387" ]; then \
-		md5/md5cmp $(MD5_PPM_3x2_FLOAT_387) testout_3x2_float.ppm; \
 	fi
 	rm -f testout_3x2_float.ppm testout_3x2_float_prog.jpg
 
@@ -538,7 +526,7 @@ if WITH_ARITH_ENC
 endif
 if WITH_ARITH_DEC
 # CC: RGB->YCC  SAMP: h2v2 merged  IDCT: ifast  ENT: arith
-	./djpeg -fast -skip 1,20 -ppm -outfile testout_420m_ifast_ari.ppm $(srcdir)/testimages/testimgari.jpg
+	./djpeg -fast -ppm -outfile testout_420m_ifast_ari.ppm $(srcdir)/testimages/testimgari.jpg
 	md5/md5cmp $(MD5_PPM_420M_IFAST_ARI) testout_420m_ifast_ari.ppm
 	rm -f testout_420m_ifast_ari.ppm
 	./jpegtran -outfile testout_420_islow.jpg $(srcdir)/testimages/testimgari.jpg
@@ -701,12 +689,6 @@ testclean:
 	rm -f *_411_*.ppm
 	rm -f *_411_*.jpg
 	rm -f *_411.yuv
-	rm -f tjbenchtest*.log
-	rm -f tjexampletest*.log
-
-
-croptest:
-	sh ./cropregressiontest
 
 
 tjtest:

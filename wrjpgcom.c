@@ -247,7 +247,7 @@ copy_variable (void)
   if (length < 2)
     ERREXIT("Erroneous JPEG marker length");
   length -= 2;
-  /* Copy the remaining bytes */
+  /* Skip over the remaining bytes */
   while (length > 0) {
     write_1_byte(read_1_byte());
     length--;
@@ -581,7 +581,7 @@ main (int argc, char **argv)
     }
   }
   /* Duplicate the remainder of the source file.
-   * Note that any COM markers occurring after SOF will not be touched.
+   * Note that any COM markers occuring after SOF will not be touched.
    */
   write_marker(marker);
   copy_rest_of_file();

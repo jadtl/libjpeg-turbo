@@ -3,9 +3,8 @@
  *
  * This file was part of the Independent JPEG Group's software:
  * Copyright (C) 1991-1996, Thomas G. Lane.
- * Modified 2017 by Guido Vollbeding.
- * libjpeg-turbo Modifications:
- * Copyright (C) 2018, D. R. Commander.
+ * It was modified by The libjpeg-turbo Project to include only code relevant
+ * to libjpeg-turbo.
  * For conditions of distribution and use, see the accompanying README.ijg
  * file.
  *
@@ -66,7 +65,6 @@ typedef struct _tga_source_struct {
   U_CHAR tga_pixel[4];
 
   int pixel_size;               /* Bytes per Targa pixel (1 to 4) */
-  int cmap_length;              /* colormap length */
 
   /* State info for reading RLE-coded pixels; both counts must be init to 0 */
   int block_count;              /* # of pixels remaining in RLE block */
@@ -127,10 +125,11 @@ METHODDEF(void)
 read_non_rle_pixel (tga_source_ptr sinfo)
 /* Read one Targa pixel from the input file; no RLE expansion */
 {
+  register FILE *infile = sinfo->pub.input_file;
   register int i;
 
   for (i = 0; i < sinfo->pixel_size; i++) {
-    sinfo->tga_pixel[i] = (U_CHAR) read_byte(sinfo);
+    sinfo->tga_pixel[i] = (U_CHAR) getc(infile);
   }
 }
 
@@ -139,6 +138,7 @@ METHODDEF(void)
 read_rle_pixel (tga_source_ptr sinfo)
 /* Read one Targa pixel from the input file, expanding RLE data as needed */
 {
+  register FILE *infile = sinfo->pub.input_file;
   register int i;
 
   /* Duplicate previously read pixel? */
@@ -160,7 +160,7 @@ read_rle_pixel (tga_source_ptr sinfo)
 
   /* Read next pixel */
   for (i = 0; i < sinfo->pixel_size; i++) {
-    sinfo->tga_pixel[i] = (U_CHAR) read_byte(sinfo);
+    sinfo->tga_pixel[i] = (U_CHAR) getc(infile);
   }
 }
 
@@ -197,14 +197,11 @@ get_8bit_row (j_compress_ptr cinfo, cjpeg_source_ptr sinfo)
   register JSAMPROW ptr;
   register JDIMENSION col;
   register JSAMPARRAY colormap = source->colormap;
-  int cmaplen = source->cmap_length;
 
   ptr = source->pub.buffer[0];
   for (col = cinfo->image_width; col > 0; col--) {
     (*source->read_pixel) (source); /* Load next pixel into tga_pixel */
     t = UCH(source->tga_pixel[0]);
-    if (t >= cmaplen)
-      ERREXIT(cinfo, JERR_TGA_BADPARMS);
     *ptr++ = colormap[0][t];
     *ptr++ = colormap[1][t];
     *ptr++ = colormap[2][t];
@@ -456,14 +453,12 @@ start_input_tga (j_compress_ptr cinfo, cjpeg_source_ptr sinfo)
     /* Allocate space to store the colormap */
     source->colormap = (*cinfo->mem->alloc_sarray)
       ((j_common_ptr) cinfo, JPOOL_IMAGE, (JDIMENSION) maplen, (JDIMENSION) 3);
-    source->cmap_length = (int)maplen;
     /* and read it from the file */
     read_colormap(source, (int) maplen, UCH(targaheader[7]));
   } else {
     if (cmaptype)               /* but you promised a cmap! */
       ERREXIT(cinfo, JERR_TGA_BADPARMS);
     source->colormap = NULL;
-    source->cmap_length = 0;
   }
 
   cinfo->input_components = components;

@@ -36,9 +36,10 @@ if [ -d $OUTDIR ]; then
 fi
 mkdir -p $OUTDIR
 
-while [ $# -gt 0 ]; do
-	case "$1" in
-	-yuv)
+exec >$EXEDIR/tjbenchtest.log
+
+if [ $# -gt 0 ]; then
+	if [ "$1" = "-yuv" ]; then
 		NSARG=-nosmooth
 		YUVARG=-yuv
 
@@ -59,16 +60,12 @@ while [ $# -gt 0 ]; do
 # phenomenon is not yet fully understood but is also believed to be some sort
 # of round-off error.)
 		IMAGES="vgl_6548_0026a.${EXT}"
-		;;
-	-alloc)
+	fi
+	if [ "$1" = "-alloc" ]; then
 		ALLOCARG=-alloc
 		ALLOC=1
-		;;
-	esac
-	shift
-done
-
-exec >$EXEDIR/tjbenchtest$YUVARG$ALLOCARG.log
+	fi
+fi
 
 # Standard tests
 for image in $IMAGES; do
