@@ -8,10 +8,6 @@ libturbojpeg_la_LDFLAGS = -version-info 1:0:1 -no-undefined
 include_HEADERS += turbojpeg.h
 endif
 
-bin_PROGRAMS += poc
-poc_SOURCES = poc.c
-poc_LDADD = libturbojpeg.la
-
 nodist_include_HEADERS = jconfig.h
 
 pkgconfigdir = $(libdir)/pkgconfig
@@ -115,6 +111,10 @@ tjunittest_SOURCES = tjunittest.c tjutil.h tjutil.c
 tjunittest_LDADD = libturbojpeg.la
 
 endif
+
+bin_PROGRAMS += poc
+poc_SOURCES = poc.c
+poc_LDADD = libturbojpeg.la
 
 
 cjpeg_SOURCES = cdjpeg.h cderror.h cdjpeg.c cjpeg.c rdgif.c rdppm.c rdswitch.c
